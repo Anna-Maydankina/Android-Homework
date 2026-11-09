@@ -2,10 +2,13 @@ package com.example.virtulcat
 
 data class Cat(
     val name: String,
-    var hunger: Int,
-    var energy: Int,
-    var happiness: Int
+    val hunger: Int,
+    val energy: Int,
+    val happiness: Int
 )
+const val start_hunger = 70
+const val start_energy = 80
+const val start_happiness = 90
 enum class CatState{
     Happy, Normal, Sad, Hungry, Tired, Bad
 }

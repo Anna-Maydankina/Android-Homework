@@ -1,5 +1,5 @@
-package com.example.virtulcat
 
+package com.example.virtulcat
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -14,105 +14,172 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.ui.NavDisplay
 import com.example.virtulcat.ui.theme.VirtulCatTheme
 
-const val start_hunger = 70
-const val start_energy = 80
-const val start_happiness = 90
+
+object CatListRoute
+object CatDetailRoute
 
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         enableEdgeToEdge()
 
         setContent {
             VirtulCatTheme {
-                CatScreen()
+
+                val catViewModel: CatViewModel = viewModel()
+                val uiState by catViewModel.uiState.collectAsState()
+                val backStack = rememberSaveable(
+                    saver = listSaver(
+                        save = { stack ->
+                            stack.map { route ->
+                                if (route == CatListRoute) {
+                                    "list"
+                                } else {
+                                    "detail"
+                                }
+                            }
+                        },
+                        restore = { savedStack ->
+                            mutableStateListOf<Any>().apply {
+                                savedStack.forEach { route ->
+                                    add(
+                                        if (route == "list") {
+                                            CatListRoute
+                                        } else {
+                                            CatDetailRoute
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    )
+                ) {
+                    mutableStateListOf<Any>(CatListRoute)
+                }
+
+                NavDisplay(
+                    backStack = backStack,
+
+                    onBack = {
+                        if (backStack.size > 1) {
+                            backStack.removeLastOrNull()
+                        }
+                    },
+
+                    entryProvider = { key ->
+
+                        when (key) {
+
+                            CatListRoute -> NavEntry(key) {
+                                CatListScreen(
+                                    cats = uiState.cats,
+
+                                    onCatClick = { name ->
+                                        catViewModel.selectCat(name)
+                                        backStack.add(CatDetailRoute)
+                                    },
+
+                                    onAddCat = {
+                                        catViewModel.addCat()
+                                    },
+
+                                    onRemoveCat = { name ->
+                                        catViewModel.removeCat(name)
+                                    }
+                                )
+                            }
+
+                            CatDetailRoute -> NavEntry(key) {
+                                CatScreen(
+                                    uiState = uiState,
+
+                                    onPrevious = {
+                                        catViewModel.selectPreviousCat()
+                                    },
+
+                                    onNext = {
+                                        catViewModel.selectNextCat()
+                                    },
+
+                                    onFeed = {
+                                        catViewModel.feedSelectedCat()
+                                    },
+
+                                    onPlay = {
+                                        catViewModel.playWithSelectedCat()
+                                    },
+
+                                    onSleep = {
+                                        catViewModel.sleepSelectedCat()
+                                    },
+
+                                    onReset = {
+                                        catViewModel.resetSelectedCat()
+                                    },
+
+                                    onBack = {
+                                        if (backStack.size > 1) {
+                                            backStack.removeLastOrNull()
+                                        }
+                                    }
+                                )
+                            }
+
+                            else -> NavEntry(key) {
+                                Text(" ")
+                            }
+                        }
+                    }
+                )
             }
         }
     }
 }
 
-val catsSaver = listSaver<List<Cat>, String>(
-    save = { cats ->
-        cats.map { cat ->
-            "${cat.name}|${cat.hunger}|${cat.energy}|${cat.happiness}"
-        }
-    },
-    restore = { saved ->
-        saved.map { catData ->
-            val parts = catData.split("|")
-
-            Cat(
-                name = parts[0],
-                hunger = parts[1].toInt(),
-                energy = parts[2].toInt(),
-                happiness = parts[3].toInt()
-            )
-        }
-    }
-)
-
 @Composable
-fun CatScreen() {
+fun CatScreen(
+    uiState: CatUiState,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onFeed: () -> Unit,
+    onPlay: () -> Unit,
+    onSleep: () -> Unit,
+    onReset: () -> Unit,
+    onBack: () -> Unit
+) {
+    val cat = uiState.cats[uiState.selectedCat]
 
-    val cats = rememberSaveable(saver = catsSaver) {
-        listOf(
-            Cat(
-                name = "Нагломорд",
-                hunger = start_hunger,
-                energy = start_energy,
-                happiness = start_happiness
-            ),
-            Cat(
-                name = "Пушистик",
-                hunger = 50,
-                energy = 60,
-                happiness = 70
-            ),
-            Cat(
-                name = "Мурчальник",
-                hunger = 90,
-                energy = 40,
-                happiness = 50
-            )
-        )
-    }
-
-    var selectedCat by rememberSaveable {
-        mutableStateOf(0)
-    }
-
-    var update by remember {
-        mutableStateOf(0)
-    }
-
-    val cat = cats[selectedCat]
-
-    val state = update.let {
-        getCatState(cat)
-    }
-
+    val state = getCatState(cat)
     val catImage = getCatImage(state)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(24.dp),
+
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+
+        Button(onClick = onBack) {
+            Text("⬅️ Назад к списку")
+        }
 
         Image(
             painter = painterResource(catImage),
@@ -131,28 +198,24 @@ fun CatScreen() {
 
         Text(text = "Состояние: $state")
 
-        if (getStateMessage(state).isNotEmpty()) {
-            Text(text = getStateMessage(state))
+        val message = getStateMessage(state)
+
+        if (message.isNotEmpty()) {
+            Text(text = message)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
-            enabled = selectedCat > 0,
-            onClick = {
-                selectedCat--
-                update++
-            }
+            enabled = uiState.selectedCat > 0,
+            onClick = onPrevious
         ) {
             Text("⬅️ Предыдущий")
         }
 
         Button(
-            enabled = selectedCat < cats.lastIndex,
-            onClick = {
-                selectedCat++
-                update++
-            }
+            enabled = uiState.selectedCat < uiState.cats.lastIndex,
+            onClick = onNext
         ) {
             Text("Следующий ➡️")
         }
@@ -161,47 +224,30 @@ fun CatScreen() {
 
         Button(
             enabled = cat.hunger < 100,
-            onClick = {
-                feedCat(cat)
-                update++
-            }
+            onClick = onFeed
         ) {
             Text("🍚 Покормить")
         }
 
         Button(
             enabled = cat.energy >= 20 && cat.hunger >= 30,
-            onClick = {
-                playWithCat(cat)
-                update++
-            }
+            onClick = onPlay
         ) {
             Text("🧶 Поиграть")
         }
 
         Button(
             enabled = cat.energy < 100,
-            onClick = {
-                sleepCat(cat)
-                update++
-            }
+            onClick = onSleep
         ) {
             Text("😴 Поспать")
         }
 
-        Button(
-            onClick = {
-                cat.hunger = start_hunger
-                cat.energy = start_energy
-                cat.happiness = start_happiness
-                update++
-            }
-        ) {
+        Button(onClick = onReset) {
             Text("Сброс")
         }
     }
 }
-
 fun getCatImage(state: CatState): Int {
     return when (state) {
         CatState.Happy -> R.drawable.cathappy
@@ -212,7 +258,6 @@ fun getCatImage(state: CatState): Int {
         CatState.Tired -> R.drawable.catsleep
     }
 }
-
 fun getStateMessage(state: CatState): String {
     return when (state) {
         CatState.Tired -> "⚠️ Котик устал!"
