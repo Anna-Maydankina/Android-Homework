@@ -1,6 +1,7 @@
 package com.example.virtulcat
 
 data class Cat(
+    val id: Int,
     val name: String,
     val hunger: Int,
     val energy: Int,

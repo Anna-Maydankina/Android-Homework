@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -53,6 +54,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.11.0")
     implementation("androidx.navigation3:navigation3-runtime:1.2.1")
     implementation("androidx.navigation3:navigation3-ui:1.2.1")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-navigation3:2.11.0")
 
     testImplementation(libs.junit)
 

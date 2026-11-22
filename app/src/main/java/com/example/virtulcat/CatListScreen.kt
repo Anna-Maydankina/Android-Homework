@@ -48,7 +48,7 @@ fun CatListScreen(
         ) {
             items(
                 items = cats,
-                key = { it.name }
+                key = { it.id}
             ) { cat ->
 
                 val state = getCatState(cat)
