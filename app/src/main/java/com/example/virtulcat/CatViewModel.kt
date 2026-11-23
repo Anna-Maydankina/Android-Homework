@@ -2,13 +2,21 @@ package com.example.virtulcat
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import java.io.IOException
+import retrofit2.HttpException
 
 data class CatUiState(
     val cats: List<Cat>,
-    val selectedCat: Int = 0
+    val selectedCat: Int = 0,
+    val catFact: String? = null,
+    val isFactLoading: Boolean = false,
+    val factError: String? = null
 )
 
 class CatViewModel(
@@ -16,6 +24,8 @@ class CatViewModel(
 ) : ViewModel() {
 
     private var nextCatNumber = 11
+
+    private val repository = CatRepository()
 
     private val _uiState = MutableStateFlow(
         CatUiState(
@@ -36,6 +46,50 @@ class CatViewModel(
     )
 
     val uiState: StateFlow<CatUiState> = _uiState.asStateFlow()
+
+    init {
+        loadCatFact()
+    }
+
+    fun loadCatFact() {
+        if (_uiState.value.isFactLoading) {
+            return
+        }
+
+        _uiState.value = _uiState.value.copy(
+            isFactLoading = true,
+            factError = null
+        )
+
+        viewModelScope.launch {
+            try {
+                val result = repository.getRandomCat()
+
+                _uiState.value = _uiState.value.copy(
+                    catFact = result.fact,
+                    isFactLoading = false,
+                    factError = null
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: IOException) {
+                _uiState.value = _uiState.value.copy(
+                    isFactLoading = false,
+                    factError = "Не удалось загрузить факт"
+                )
+            } catch (e: HttpException) {
+                _uiState.value = _uiState.value.copy(
+                    isFactLoading = false,
+                    factError = "Ошибка сервера: ${e.code()}"
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isFactLoading = false,
+                    factError = "Произошла ошибка при загрузке"
+                )
+            }
+        }
+    }
 
     fun selectCat(name: String) {
         val currentState = _uiState.value

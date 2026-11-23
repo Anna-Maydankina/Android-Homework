@@ -49,12 +49,18 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.serialization)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.okhttp)
+    implementation(libs.coil.compose)
 
 
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.11.0")
     implementation("androidx.navigation3:navigation3-runtime:1.2.1")
     implementation("androidx.navigation3:navigation3-ui:1.2.1")
     implementation("androidx.lifecycle:lifecycle-viewmodel-navigation3:2.11.0")
+
 
     testImplementation(libs.junit)
 

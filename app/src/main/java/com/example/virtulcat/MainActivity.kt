@@ -11,6 +11,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -118,6 +122,10 @@ class MainActivity : ComponentActivity() {
                                     if (backStack.size > 1) {
                                         backStack.removeLastOrNull()
                                     }
+                                },
+
+                                onReloadFact = {
+                                    catViewModel.loadCatFact()
                                 }
                             )
                         }
@@ -137,7 +145,8 @@ fun CatScreen(
     onPlay: () -> Unit,
     onSleep: () -> Unit,
     onReset: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onReloadFact: () -> Unit
 ) {
     val cat = uiState.cats[uiState.selectedCat]
 
@@ -147,9 +156,11 @@ fun CatScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(24.dp)
+            .verticalScroll(rememberScrollState()),
 
         horizontalAlignment = Alignment.CenterHorizontally,
+
         verticalArrangement = Arrangement.Center
     ) {
 
@@ -222,6 +233,38 @@ fun CatScreen(
         Button(onClick = onReset) {
             Text("Сброс")
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text("🐾 Факт о котиках")
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        if (uiState.isFactLoading) {
+            Text("Загружаем интересный факт...")
+        }
+
+        if (uiState.catFact != null) {
+            Text(
+                text = uiState.catFact,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        if (uiState.factError != null) {
+            Text(uiState.factError)
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = onReloadFact,
+            enabled = !uiState.isFactLoading
+        ) {
+            Text("🐈 Новый факт")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
